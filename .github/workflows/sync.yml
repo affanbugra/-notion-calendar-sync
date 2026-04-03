@@ -1,10 +1,10 @@
-name: Notion → Google Calendar Sync
+name: Notion Google Calendar Sync
 
 on:
   schedule:
-    - cron: '0 6 * * *'   # 09:00 Türkiye saati
-    - cron: '0 15 * * *'  # 18:00 Türkiye saati
-  workflow_dispatch:       # Manuel çalıştırma butonu
+    - cron: '0 6 * * *'
+    - cron: '0 15 * * *'
+  workflow_dispatch:
 
 jobs:
   sync:
@@ -12,15 +12,15 @@ jobs:
     steps:
       - uses: actions/checkout@v4
 
-      - name: Python kur
+      - name: Setup Python
         uses: actions/setup-python@v5
         with:
           python-version: '3.11'
 
-      - name: Bağımlılıkları yükle
+      - name: Install dependencies
         run: pip install -r requirements.txt
 
-      - name: Sync çalıştır
+      - name: Run sync
         env:
           NOTION_TOKEN: ${{ secrets.NOTION_TOKEN }}
           GOOGLE_CREDENTIALS_JSON: ${{ secrets.GOOGLE_CREDENTIALS_JSON }}
