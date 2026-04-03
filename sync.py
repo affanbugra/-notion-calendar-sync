@@ -5,7 +5,7 @@ from google.oauth2.credentials import Credentials
 from googleapiclient.discovery import build
 
 NOTION_TOKEN = os.environ["NOTION_TOKEN"]
-NOTION_DATABASE_ID = "717c5cb13b984f0cbb3c4231d2a9be01"
+NOTION_DATABASE_ID = "29e0133858d7803e93cade22c5a7a58d"
 SCOPES = ["https://www.googleapis.com/auth/calendar"]
 
 
