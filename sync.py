@@ -1,12 +1,13 @@
 import os
 import json
 import requests
-from google.oauth2.credentials import Credentials
+from google.oauth2 import service_account
 from googleapiclient.discovery import build
 
 NOTION_TOKEN = os.environ["NOTION_TOKEN"]
 NOTION_DATABASE_ID = "29e0133858d7803e93cade22c5a7a58d"
 SCOPES = ["https://www.googleapis.com/auth/calendar"]
+CALENDAR_NAME = "Notion Sync"
 
 
 def get_notion_pages():
@@ -35,15 +36,12 @@ def get_notion_pages():
 def parse_page(page):
     props = page["properties"]
 
-    # Name
     title_list = props.get("Name", {}).get("title", [])
     name = title_list[0]["plain_text"] if title_list else "(İsimsiz)"
 
-    # Date
     date_prop = props.get("Date", {}).get("date")
     date = date_prop["start"] if date_prop else None
 
-    # Status
     status_prop = props.get("Status", {})
     if status_prop.get("type") == "status":
         status = (status_prop.get("status") or {}).get("name", "")
@@ -56,29 +54,27 @@ def parse_page(page):
 
 
 def get_calendar_service():
-    creds_json = os.environ["GOOGLE_CREDENTIALS_JSON"]
-    token_json = os.environ["GOOGLE_TOKEN_JSON"]
-    creds_info = json.loads(token_json)
-    client_info = json.loads(creds_json)
-
-    creds = Credentials(
-        token=creds_info["token"],
-        refresh_token=creds_info["refresh_token"],
-        token_uri=client_info["installed"]["token_uri"],
-        client_id=client_info["installed"]["client_id"],
-        client_secret=client_info["installed"]["client_secret"],
-        scopes=SCOPES,
+    sa_json = os.environ["GOOGLE_SERVICE_ACCOUNT_JSON"]
+    creds = service_account.Credentials.from_service_account_info(
+        json.loads(sa_json), scopes=SCOPES
     )
     return build("calendar", "v3", credentials=creds)
 
 
-def get_existing_events(service):
-    """notion_id içeren tüm eventleri çek."""
+def get_calendar_id(service):
+    result = service.calendarList().list().execute()
+    for cal in result.get("items", []):
+        if cal.get("summary") == CALENDAR_NAME:
+            return cal["id"]
+    raise ValueError(f"'{CALENDAR_NAME}' takvimi bulunamadı. Service account ile paylaşıldığından emin ol.")
+
+
+def get_existing_events(service, calendar_id):
     events = {}
     page_token = None
     while True:
         result = service.events().list(
-            calendarId="primary",
+            calendarId=calendar_id,
             privateExtendedProperty="sync_source=notion",
             pageToken=page_token,
             maxResults=250,
@@ -98,7 +94,8 @@ def get_existing_events(service):
 
 def sync():
     service = get_calendar_service()
-    existing = get_existing_events(service)
+    calendar_id = get_calendar_id(service)
+    existing = get_existing_events(service, calendar_id)
     notion_pages = get_notion_pages()
 
     notion_ids_with_date = set()
@@ -119,22 +116,20 @@ def sync():
 
             if nid in existing:
                 ev = existing[nid]
-                # Güncelle (başlık veya durum değiştiyse)
                 if ev.get("summary") != body["summary"] or ev.get("description") != body["description"]:
                     service.events().update(
-                        calendarId="primary", eventId=ev["id"], body=body
+                        calendarId=calendar_id, eventId=ev["id"], body=body
                     ).execute()
                     print(f"[GÜNCELLENDI] {p['name']}")
                 else:
                     print(f"[AYNI] {p['name']}")
             else:
-                service.events().insert(calendarId="primary", body=body).execute()
+                service.events().insert(calendarId=calendar_id, body=body).execute()
                 print(f"[EKLENDI] {p['name']}")
 
-    # Tarih kalkan veya Notion'dan silinen kayıtları Calendar'dan sil
     for nid, ev in existing.items():
         if nid not in notion_ids_with_date:
-            service.events().delete(calendarId="primary", eventId=ev["id"]).execute()
+            service.events().delete(calendarId=calendar_id, eventId=ev["id"]).execute()
             print(f"[SILINDI] {ev.get('summary', nid)}")
 
     print("✅ Senkronizasyon tamamlandı.")
