@@ -1,6 +1,6 @@
 # 📅 Notion → Google Calendar Sync
 
-> Notion'da takip ettiğim staj ve iş başvurularının tarihlerini Google Calendar'a otomatik yansıtan, saatte bir çalışan hafif bir otomasyon.
+> Notion'da takip ettiğim staj ve iş başvurularının tarihlerini Google Calendar'a otomatik yansıtan, saatte bir çalışan bir otomasyon.
 
 ---
 
