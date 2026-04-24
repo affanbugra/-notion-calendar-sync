@@ -7,7 +7,7 @@ from googleapiclient.discovery import build
 NOTION_TOKEN = os.environ["NOTION_TOKEN"]
 NOTION_DATABASE_ID = "29e0133858d7803e93cade22c5a7a58d"
 SCOPES = ["https://www.googleapis.com/auth/calendar"]
-CALENDAR_NAME = "Notion Sync"
+CALENDAR_ID = "8b0a29b263bfd5df97edd096b0ac248d7ac558baa21fbb7ed297874436ce8730@group.calendar.google.com"
 
 
 def get_notion_pages():
@@ -61,20 +61,12 @@ def get_calendar_service():
     return build("calendar", "v3", credentials=creds)
 
 
-def get_calendar_id(service):
-    result = service.calendarList().list().execute()
-    for cal in result.get("items", []):
-        if cal.get("summary") == CALENDAR_NAME:
-            return cal["id"]
-    raise ValueError(f"'{CALENDAR_NAME}' takvimi bulunamadı. Service account ile paylaşıldığından emin ol.")
-
-
 def get_existing_events(service, calendar_id):
     events = {}
     page_token = None
     while True:
         result = service.events().list(
-            calendarId=calendar_id,
+            calendarId=CALENDAR_ID,
             privateExtendedProperty="sync_source=notion",
             pageToken=page_token,
             maxResults=250,
@@ -94,8 +86,7 @@ def get_existing_events(service, calendar_id):
 
 def sync():
     service = get_calendar_service()
-    calendar_id = get_calendar_id(service)
-    existing = get_existing_events(service, calendar_id)
+    existing = get_existing_events(service, CALENDAR_ID)
     notion_pages = get_notion_pages()
 
     notion_ids_with_date = set()
@@ -118,18 +109,18 @@ def sync():
                 ev = existing[nid]
                 if ev.get("summary") != body["summary"] or ev.get("description") != body["description"]:
                     service.events().update(
-                        calendarId=calendar_id, eventId=ev["id"], body=body
+                        calendarId=CALENDAR_ID, eventId=ev["id"], body=body
                     ).execute()
                     print(f"[GÜNCELLENDI] {p['name']}")
                 else:
                     print(f"[AYNI] {p['name']}")
             else:
-                service.events().insert(calendarId=calendar_id, body=body).execute()
+                service.events().insert(calendarId=CALENDAR_ID, body=body).execute()
                 print(f"[EKLENDI] {p['name']}")
 
     for nid, ev in existing.items():
         if nid not in notion_ids_with_date:
-            service.events().delete(calendarId=calendar_id, eventId=ev["id"]).execute()
+            service.events().delete(calendarId=CALENDAR_ID, eventId=ev["id"]).execute()
             print(f"[SILINDI] {ev.get('summary', nid)}")
 
     print("✅ Senkronizasyon tamamlandı.")
