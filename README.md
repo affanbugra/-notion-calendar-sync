@@ -1,18 +1,14 @@
 # 📅 Notion → Google Calendar Sync
 
-> Notion'daki iş/staj başvurularını otomatik olarak Google Calendar'a senkronize eden, GitHub Actions üzerinde saatte bir çalışan hafif bir otomasyon sistemi.
+> Notion'da takip ettiğim staj ve iş başvurularının tarihlerini Google Calendar'a otomatik yansıtan, saatte bir çalışan hafif bir otomasyon.
 
 ---
 
-## 🧠 Ne Yapar?
+## 💡 Neden Var?
 
-Notion'da tuttuğum **Staj - İş Başvuruları** veritabanındaki her kaydı okur; tarih bilgisi olan başvuruları Google Calendar'a etkinlik olarak ekler, günceller veya siler.
+Başvuruları Notion Kanban'da takip etmek çok iyi çalışıyor — ama son teslim tarihleri ve mülakat günleri gözden kaçabiliyor. Takvimi ayrıca güncellemek ise zahmetli.
 
-| Notion'da ne olursa | Calendar'da ne olur |
-|---|---|
-| Yeni başvuru + tarih eklendi | Etkinlik oluşturulur |
-| Başvuru adı veya durumu değişti | Etkinlik güncellenir |
-| Tarih silindi veya kayıt kaldırıldı | Etkinlik silinir |
+Bu sistem ikisini birleştiriyor: **Notion'da rahatça takip et, tarihleri Google Calendar'da otomatik gör.**
 
 ---
 
@@ -20,49 +16,38 @@ Notion'da tuttuğum **Staj - İş Başvuruları** veritabanındaki her kaydı ok
 
 ![Notion Screenshot](notion.png)
 
-Kanban görünümündeki her kart bir başvuruyu temsil eder. Sistem şu alanları okur:
+Her kart bir başvuruyu temsil eder. Sistem şu alanları okur:
 
-- **Name** — başvurulan pozisyon/şirket adı
-- **Date** — başvuru veya mülakat tarihi
-- **Status** — başvuru aşaması (Başvurulmadı, Başvuruldu, Eleme Aşamaları…)
+- **Name** — başvurulan pozisyon / şirket
+- **Date** — son başvuru veya mülakat tarihi
+- **Status** — mevcut aşama (Başvurulmadı, Başvuruldu, Eleme Aşamaları…)
 
 ---
 
 ## ⚙️ Nasıl Çalışır?
 
 ```
-Notion API → sync.py → Google Calendar API
-                ↑
-     GitHub Actions (her saat)
+Notion Kanban → sync.py → Google Calendar
+                   ↑
+        GitHub Actions (saatte bir)
 ```
 
-1. `sync.py` Notion veritabanını sorgular
-2. `sync_source=notion` etiketiyle işaretlenmiş mevcut Calendar etkinlikleriyle karşılaştırır
-3. Farkları uygular: ekle / güncelle / sil
-4. GitHub Actions bu scripti **saatte bir** otomatik çalıştırır
+| Notion'da ne olursa | Calendar'da ne olur |
+|---|---|
+| Tarihli yeni başvuru eklendi | Etkinlik oluşturulur |
+| Başvuru adı veya durumu değişti | Etkinlik güncellenir |
+| Tarih silindi veya kayıt kaldırıldı | Etkinlik silinir |
 
 ---
 
 ## 🔐 Kimlik Doğrulama
 
-OAuth token'ları zamanla expire olduğu için sistem **Google Service Account** kullanır — kurulduktan sonra bir daha müdahale gerektirmez.
-
-Gerekli GitHub Secrets:
+Expire olan OAuth token sorununu önlemek için **Google Service Account** kullanılır — bir kez kurulur, bir daha müdahale gerekmez.
 
 | Secret | Açıklama |
 |---|---|
 | `NOTION_TOKEN` | Notion Integration token'ı |
 | `GOOGLE_SERVICE_ACCOUNT_JSON` | Service account JSON anahtarı |
-
----
-
-## 🚀 Kurulum
-
-1. **Notion Integration** oluştur ve veritabanına erişim ver
-2. **Google Cloud** üzerinde bir Service Account oluştur, JSON anahtarını indir
-3. Google Calendar'ı service account e-postasıyla paylaş (`Make changes to events`)
-4. GitHub Secrets'a `NOTION_TOKEN` ve `GOOGLE_SERVICE_ACCOUNT_JSON` ekle
-5. Repo'yu fork'la veya kopyala — GitHub Actions otomatik devreye girer
 
 ---
 
